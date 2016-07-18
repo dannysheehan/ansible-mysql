@@ -1,0 +1,55 @@
+---
+## See:
+## - http://howtolamp.com/lamp/mysql/5.6/securing/
+
+## These implementations are not good enough:
+## - https://github.com/bennojoy/mysql
+## - https://github.com/geerlingguy/ansible-role-mysql
+## - http://stackoverflow.com/a/16652653
+
+- name: Disallow root login remotely
+  command: 'mysql -u root -NBe "{{ item }}"'
+  with_items:
+    - DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')
+
+# We must update all root password for all hosts in one shot. Doing it
+# separately means we will have to deal with the order issue - the root
+# password of user/host pair for doing these update must updated last, or
+# updating will fail.
+- name: Update mysql root password for all root accounts
+  command: 'mysql -u root -NBe "{{ item }}"'
+  with_items:
+    - UPDATE mysql.user SET password=PASSWORD('{{ mysql_root_password }}') WHERE User='root'
+    - FLUSH PRIVILEGES
+
+- name: Copy .my.cnf file with root password credentials
+  template: src=user-my.cnf.j2 dest=~/.my.cnf mode=0600
+
+# ----------------------------------------------------------------------------
+
+- name: Delete anonymous MySQL server user for localhost
+# mysql_user: user='' host_all=yes state="absent"
+  command: 'mysql -u root --password="{{ mysql_root_password }}" -NBe "{{ item }}"'
+  with_items:
+    - DELETE FROM mysql.user WHERE User = ''
+    - FLUSH PRIVILEGES
+
+# ----------------------------------------------------------------------------
+
+- name: Forbid access to MySQL test database
+  command: 'mysql -u root --password="{{ mysql_root_password }}" -NBe "{{ item }}"'
+  with_items:
+    - DELETE FROM mysql.db WHERE Db LIKE 'test%'
+    - FLUSH PRIVILEGES
+
+- name: Remove the MySQL test database
+  mysql_db: db=test state=absent
+
+# ----------------------------------------------------------------------------
+
+# TODO: when os is linux, or there is no /dev/null to link to
+- name: Disabling MySQL Server history file
+  file: state=link force=yes path=~/.mysql_history src=/dev/null
+
+
+

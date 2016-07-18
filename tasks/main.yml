@@ -1,0 +1,68 @@
+---
+# tasks file for jeffhung.mysql
+
+# ----------------------------------------------------------------------------
+
+- block:
+
+  - name: Install mysql packages (yum)
+    yum: state=present name={{ item }}
+    with_items:
+      - mysql
+      - mysql-server
+      # below are required for Ansible to work
+      - MySQL-python
+      - libselinux-python
+    when: ansible_pkg_mgr == 'yum'
+
+  - name: Install mysql packages (apt)
+    apt: state=present name={{ item }}
+    with_items:
+      - mysql-common
+      - mysql-server
+      # below are required for Ansible to work
+      - python-mysqldb
+      - python-selinux
+    when: ansible_pkg_mgr == 'apt'
+
+  become: yes
+
+# ----------------------------------------------------------------------------
+
+- name: Start the mysql services and enable on boot
+  service: state=started enabled=yes name={{ mysql_service_name[ansible_os_family] }}
+  become: yes
+
+# ----------------------------------------------------------------------------
+
+- name: Try login mysql as root with default empty password
+  mysql_variables: login_user=root login_password='' variable=version
+  register: mysql_version
+  ignore_errors: yes
+
+- name: Determine if mysql need securing or not
+  set_fact: mysql_need_securing={{ mysql_version.failed is not defined }}
+
+- debug: var=mysql_need_securing
+
+- name: Initiate mysql securing process
+  include: securing.yml
+  when: mysql_need_securing
+
+# ----------------------------------------------------------------------------
+
+- name: Create the databases
+  mysql_db: name={{ item.name }} state=present
+  with_items: "{{ mysql_databases }}"
+  when: mysql_databases|lower() != 'none'
+
+- name: Create the database users
+  mysql_user:
+    state:    present
+    name:     "{{ item.name }}"
+    password: "{{ item.pass | default('mysqluserpass') }}"
+    priv:     "{{ item.priv | default('*.*:ALL') }}"
+    host:     "{{ item.host | default('localhost') }}"
+  with_items: "{{ mysql_users }}"
+  when: mysql_users|lower() != 'none'
+

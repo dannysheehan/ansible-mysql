@@ -1,0 +1,22 @@
+galaxy_info:
+  author: jeffhung
+  description: Ansible playbook for installing MySQL Server on CentOS/Debian Linux
+  license: BSD
+  
+  min_ansible_version: 1.2
+
+  platforms:
+  - name: EL
+    versions:
+     - 6
+  - name: Ubuntu
+    versions:
+     - trusty
+
+  galaxy_tags:
+    - development
+    - database
+    - system
+
+dependencies: []
+
