@@ -51,6 +51,20 @@
 
 # ----------------------------------------------------------------------------
 
+# Note: On debian the mysql user debian-sys-maint must exist!!
+#       This user together with the credentials in /etc/mysql/debian.cnf are
+#       used by the init scripts to stop the server as they would require
+#       knowledge of the mysql root users password else.
+#       (See: http://serverfault.com/a/9952)
+- name: Ensure login mysql as debian-sys-maint would success
+  mysql_variables: config_file=/etc/mysql/debian.cnf variable=version_comment
+  register: mysql_version_comment
+  when: ansible_os_family == 'Debian'
+  # File /etc/mysql/debian.cnf is owned by root
+  become: yes
+
+# ----------------------------------------------------------------------------
+
 - name: Create the databases
   mysql_db: name={{ item.name }} state=present
   with_items: "{{ mysql_databases }}"
