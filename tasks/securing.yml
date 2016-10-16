@@ -19,7 +19,7 @@
 - name: Update mysql root password for all root accounts
   command: 'mysql -u root -NBe "{{ item }}"'
   with_items:
-    - UPDATE mysql.user SET password=PASSWORD('{{ mysql_root_password }}') WHERE User='root'
+    - UPDATE mysql.user SET authentication_string=PASSWORD('{{ mysql_root_password }}') WHERE User='root'
     - FLUSH PRIVILEGES
 
 - name: Copy .my.cnf file with root password credentials
