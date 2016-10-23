@@ -5,10 +5,10 @@ mysql_service_name:
   RedHat: mysqld
   Debian: mysql
 
-# Path of the my.cnf configuration file
+# Path of the my.cnf/mysqld.cnf configuration file
 mysql_conf_path:
   RedHat: /etc/my.cnf
-  Debian: /etc/mysql/my.cnf
+  Debian: /etc/mysql/mysql.conf.d/mysqld.cnf
 
 mysql_conf_dir:
   RedHat: /etc/my.cnf.d

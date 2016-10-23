@@ -2,7 +2,7 @@
 - name: restart mysql server
   service:
     state: restarted
-    name:  "{{ mysql_service_name[{{ ansible_os_family }}] }}"
+    name:  "{{ mysql_service_name[ansible_os_family] }}"
     sleep: 5
   become: yes
 

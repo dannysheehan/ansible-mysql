@@ -1,15 +1,23 @@
 ---
 # tasks file for jeffhung.mysql
-
 # ----------------------------------------------------------------------------
+#
+
 
 - block:
+
+  - name: Install mysql community repository.
+    yum:
+      name="http://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm"
+      state=present
+    when: ansible_pkg_mgr == 'yum'
 
   - name: Install mysql packages (yum)
     yum: state=present name={{ item }}
     with_items:
       - mysql
       - mysql-server
+      - openssl
       # below are required for Ansible to work
       - MySQL-python
       - libselinux-python
@@ -20,10 +28,24 @@
     with_items:
       - mysql-common
       - mysql-server
+      - openssl
       # below are required for Ansible to work
       - python-mysqldb
       - python-selinux
     when: ansible_pkg_mgr == 'apt'
+
+  - name: Default temporary pasword
+    set_fact: temp_password=''
+
+  - name: find temporary password
+    shell: "awk  '/temporary password/ {a=$NF} END {print a}' /var/log/mysqld.log"
+    register: find_password
+    when: ansible_pkg_mgr == 'yum'
+    changed_when: false
+
+  - name: Set temporary pasword
+    set_fact: temp_password={{ find_password.stdout }}
+    when: ansible_pkg_mgr == 'yum'
 
   become: yes
 
@@ -34,20 +56,38 @@
   become: yes
 
 # ----------------------------------------------------------------------------
-
-- name: Try login mysql as root with default empty password
-  mysql_variables: login_user=root login_password='' variable=version
-  register: mysql_version
+#
+- name: Try login mysql as root with temporary password password
+  shell: mysql --connect-expired-password -u root -Nbe 'status;' 
+  environment:
+     MYSQL_PWD: "{{ temp_password }}"
+  register: get_status
   ignore_errors: yes
+  changed_when: false
 
-- name: Determine if mysql need securing or not
-  set_fact: mysql_need_securing={{ mysql_version.failed is not defined }}
+- name: Has mysql already been secured.
+  stat: 
+    path=~/.my.cnf
+  register: password_set
 
-- debug: var=mysql_need_securing
+- name: Extract current password
+  shell: "awk -F= '/password=/ {a=$NF} END {print a}' ~/.my.cnf"
+  register: find_cnf_password
+  when: password_set.stat.exists
+  changed_when: false
 
-- name: Initiate mysql securing process
+- name: Get current password
+  set_fact: temp_password={{ find_cnf_password.stdout }}
+  when: password_set.stat.exists
+  changed_when: false
+
+
+- name: Initiate mysql securing process if password chage
   include: securing.yml
-  when: mysql_need_securing
+  when: temp_password != mysql_root_password
+
+- name: include certificates
+  include: certificates.yml
 
 # ----------------------------------------------------------------------------
 
@@ -68,6 +108,8 @@
 - name: Create the databases
   mysql_db: name={{ item.name }} state=present
   with_items: "{{ mysql_databases }}"
+  environment:
+     MYSQL_PWD: "{{ temp_password }}"
   when: mysql_databases|lower() != 'none'
 
 - name: Create the database users

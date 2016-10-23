@@ -1,13 +1,17 @@
-# Ansible Role: jeffhung.mysql
+# Ansible Role: mysql
 
 Ansible playbook for installing MySQL Server on CentOS/Debian Linux
+
+## Forked Changes by danny
+
+- Added mysql certificate generation.
+- Canges to detect password changes and also to detect initial random password for Centos7
+- Downloads community addition of MYSQL for Centos7
 
 
 ## Usage
 
-Install this playbook:
-
-	ansible-galaxy install jeffhung.mysql
+	git clone git@github.com:dannysheehan/ansible-role-mysql mysql
 
 
 ## Role Variables

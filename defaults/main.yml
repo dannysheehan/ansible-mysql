@@ -2,6 +2,8 @@
 
 mysql_root_password: mysqlrootpass
 
+mysql_certficates: no
+
 mysql_databases:
   - name: foo_db
   - name: bar_db
