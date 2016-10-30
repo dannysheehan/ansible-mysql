@@ -1,19 +1,17 @@
 ---
 
-- name: Update MySQL root password for localhost root account (5.7.x).
-  environment:
-    MYSQL_PWD: "{{ temp_password }}"
+- name: "Update MySQL root password for localhost root account {{ mysql_root_password }}"
   shell: mysql --connect-expired-password -u root -NBe 'ALTER USER "root"@"localhost" IDENTIFIED WITH mysql_native_password BY "{{ mysql_root_password }}";'
-  changed_when: false
-  always_run: true
-
-- name: Get list of all hosts for the root user.
   environment:
     MYSQL_PWD: "{{ mysql_root_password }}"
-  command: mysql -NBe 'SELECT Host FROM mysql.user WHERE User = "root" ORDER BY (Host="localhost") ASC'
+
+- name: Copy .my.cnf file with root password credentials
+  template: src=user-my.cnf.j2 dest=~/.my.cnf mode=0600
+
+- name: Get list of all hosts for the root user.
+  shell: mysql -NBe 'SELECT Host FROM mysql.user WHERE User = "root" ORDER BY (Host="localhost") ASC'
+  check_mode: no
   register: mysql_root_hosts
-  changed_when: false
-  always_run: true
 
 # We must update all root password for all hosts in one shot. Doing it
 # separately means we will have to deal with the order issue - the root
@@ -22,15 +20,9 @@
 # Note: We do not use mysql_user for this operation, as it doesn't always update
 # the root password correctly. See: https://goo.gl/MSOejW
 # Set root password for MySQL >= 5.7.x.
-- name: Update MySQL root password for localhost root account (5.7.x).
-  environment:
-    MYSQL_PWD: "{{ mysql_root_password }}"
+- name: Update MySQL root password for localhost root account 
   shell: mysql -u root -NBe 'ALTER USER "root"@"{{ item }}" IDENTIFIED WITH mysql_native_password BY "{{ mysql_root_password }}";'
-  with_items: "{{ mysql_root_hosts.stdout_lines }}"
-
-
-- name: Copy .my.cnf file with root password credentials
-  template: src=user-my.cnf.j2 dest=~/.my.cnf mode=0600
+  with_items: "{{ mysql_root_hosts.stdout_lines | default([]) }}"
 
 ## See:
 ## - http://howtolamp.com/lamp/mysql/5.6/securing/
@@ -47,7 +39,6 @@
   changed_when: false
 
 # ----------------------------------------------------------------------------
-
 
 - name: Delete anonymous MySQL server user for localhost
 # mysql_user: user='' host_all=yes state="absent"

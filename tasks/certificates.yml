@@ -12,8 +12,9 @@
     line="{{ item.line }}"
     state=present
   with_items:
-    - { regexp: '^ssl-ca',   line: 'ssl-ca=/var/lib/mysql/ca.pem' }
-    - { regexp: '^ssl-cert', line: 'ssl-cert=/var/lib/mysql/server-cert.pem' }
-    - { regexp: '^ssl-key',  line: 'ssl-key=/var/lib/mysql/server-key.pem' }
+    - { regexp: '^ssl-ca',       line: 'ssl-ca=/var/lib/mysql/ca.pem' }
+    - { regexp: '^ssl-cert',     line: 'ssl-cert=/var/lib/mysql/server-cert.pem' }
+    - { regexp: '^ssl-key',      line: 'ssl-key=/var/lib/mysql/server-key.pem' }
+    - { regexp: '^bind-address', line: 'bind-address=0.0.0.0' }
   notify: restart mysql server
 
